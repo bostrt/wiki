@@ -35,6 +35,7 @@ type Page struct {
 	Title string
 	Body  []byte
 	HTML  template.HTML
+	Brand string
 }
 
 func (p *Page) Save(datadir string) error {
@@ -43,8 +44,8 @@ func (p *Page) Save(datadir string) error {
 }
 
 // LoadPage ...
-func LoadPage(title string, datadir string, baseurl *url.URL) (*Page, error) {
-	filename := path.Join(datadir, title+".txt")
+func LoadPage(title string, config Config, baseurl *url.URL) (*Page, error) {
+	filename := path.Join(config.data, title+".txt")
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -64,6 +65,7 @@ func LoadPage(title string, datadir string, baseurl *url.URL) (*Page, error) {
 		Title: title,
 		Body:  body,
 		HTML:  template.HTML(html),
+		Brand: config.brand,
 	}, nil
 }
 
@@ -149,9 +151,9 @@ func (s *Server) EditHandler() httprouter.Handle {
 		}
 		baseurl := r.URL.ResolveReference(u)
 
-		page, err := LoadPage(title, s.config.data, baseurl)
+		page, err := LoadPage(title, s.config, baseurl)
 		if err != nil {
-			page = &Page{Title: title}
+			page = &Page{Title: title, Brand: s.config.brand}
 		}
 
 		s.render("edit", w, page)
@@ -173,7 +175,7 @@ func (s *Server) SaveHandler() httprouter.Handle {
 
 		body := r.Form.Get("body")
 
-		page := &Page{Title: title, Body: []byte(body)}
+		page := &Page{Title: title, Body: []byte(body), Brand: s.config.brand}
 		err = page.Save(s.config.data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -202,7 +204,7 @@ func (s *Server) ViewHandler() httprouter.Handle {
 		}
 		baseurl := r.URL.ResolveReference(u)
 
-		page, err := LoadPage(title, s.config.data, baseurl)
+		page, err := LoadPage(title, s.config, baseurl)
 		if err != nil {
 			u, err := url.Parse(fmt.Sprintf("../edit/%s", title))
 			if err != nil {
