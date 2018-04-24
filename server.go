@@ -99,7 +99,6 @@ func (c *Counters) DecBy(name string, n int64) {
 
 // Server ...
 type Server struct {
-	bind      string
 	config    Config
 	templates *Templates
 	router    *httprouter.Router
@@ -238,7 +237,7 @@ func (s *Server) StatsHandler() httprouter.Handle {
 func (s *Server) ListenAndServe() {
 	log.Fatal(
 		http.ListenAndServe(
-			s.bind,
+			s.config.bind,
 			s.logger.Handler(
 				s.stats.Handler(s.router),
 			),
@@ -267,9 +266,8 @@ func (s *Server) initRoutes() {
 }
 
 // NewServer ...
-func NewServer(bind string, config Config) *Server {
+func NewServer(config Config) *Server {
 	server := &Server{
-		bind:      bind,
 		config:    config,
 		router:    httprouter.New(),
 		templates: NewTemplates("base"),
