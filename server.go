@@ -43,6 +43,18 @@ func (p *Page) Save(datadir string) error {
 	return ioutil.WriteFile(filename, p.Body, 0600)
 }
 
+// WikiPageFilter ... A filter to handle any wiki-specific operations before
+// handing off to markdown renderer.
+func WikiPageFilter(body []byte, baseurl string) []byte {
+	// Automatically replace CamelCase page identifiers as links
+	markdown := validPage.ReplaceAll(
+		body,
+		[]byte(fmt.Sprintf("[$1](%s$1)", baseurl)),
+	)
+
+	return markdown
+}
+
 // LoadPage ...
 func LoadPage(title string, config Config, baseurl *url.URL) (*Page, error) {
 	filename := path.Join(config.data, title+".txt")
@@ -51,12 +63,7 @@ func LoadPage(title string, config Config, baseurl *url.URL) (*Page, error) {
 		return nil, err
 	}
 
-	// Process and Parse the Markdown content
-	// Also automatically replace CamelCase page identifiers as links
-	markdown := validPage.ReplaceAll(
-		body,
-		[]byte(fmt.Sprintf("[$1](%s$1)", baseurl.String())),
-	)
+	markdown := WikiPageFilter(body, baseurl.String())
 
 	unsafe := blackfriday.MarkdownCommon(markdown)
 	html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
